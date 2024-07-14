@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cors());
 
 const getController=(req:Request, res:Response) => {
-  res.send('Hello World!')
+  res.send('Welcome to RpCamper!')
 }
 
 
