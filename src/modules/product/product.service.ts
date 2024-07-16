@@ -38,6 +38,7 @@ const createProductIntoDB = async (payload: TProduct) => {
  
 
     const session=await mongoose.startSession();
+    
    
      try{
        session.startTransaction();
@@ -65,20 +66,42 @@ const createProductIntoDB = async (payload: TProduct) => {
    };
    
    // Get all Products
-   const getAllProductsFromDB = async () => {
+   const getAllProductsFromDB = async (query: Record<string, unknown>) => {
    
      const session=await mongoose.startSession();
+     const { search, category, minPrice, maxPrice, sortByPrice } = query;
    
      try{
        session.startTransaction();
    
       
-       const result = await Product.find();
-   
-       if (!result.length) {
-         throw new AppError(httpStatus.NOT_FOUND, 'No Data Found')
-       }
-   
+       
+  let filter: any = {};
+
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  if (category) {
+    filter.category = category;
+  }
+
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = parseFloat(minPrice as string);
+    if (maxPrice) filter.price.$lte = parseFloat(maxPrice as string );
+  }
+
+  let sort: any = {};
+  if (sortByPrice) {
+    sort.price = sortByPrice === 'asc' ? 1 : -1;
+  }
+
+  const result =await Product.find(filter).sort(sort);
+
        await session.commitTransaction();
        await session.endSession();
    
