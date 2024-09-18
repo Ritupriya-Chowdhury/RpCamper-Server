@@ -67,55 +67,51 @@ const createProductIntoDB = async (payload: TProduct) => {
    
    // Get all Products
    const getAllProductsFromDB = async (query: Record<string, unknown>) => {
-   
-     const session=await mongoose.startSession();
-     const { search, category, minPrice, maxPrice, sortByPrice } = query;
-   
-     try{
-       session.startTransaction();
-   
-      
-       
-  let filter: any = {};
+    const session = await mongoose.startSession();
+    const { search, category, minPrice, maxPrice, sortByPrice } = query;
 
-  if (search) {
-    filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } }
-    ];
-  }
+    try {
+        session.startTransaction();
 
-  if (category) {
-    filter.category = category;
-  }
+        let filter: any = { isDeleted: false }; // Exclude soft-deleted products
 
-  if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) filter.price.$gte = parseFloat(minPrice as string);
-    if (maxPrice) filter.price.$lte = parseFloat(maxPrice as string );
-  }
+        // Apply filters based on query parameters
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
 
-  let sort: any = {};
-  if (sortByPrice) {
-    sort.price = sortByPrice === 'asc' ? 1 : -1;
-  }
+        if (category) {
+            filter.category = category;
+        }
 
-  const result =await Product.find(filter).sort(sort);
+        if (minPrice || maxPrice) {
+            filter.price = {};
+            if (minPrice) filter.price.$gte = parseFloat(minPrice as string);
+            if (maxPrice) filter.price.$lte = parseFloat(maxPrice as string);
+        }
 
-       await session.commitTransaction();
-       await session.endSession();
-   
-       return result;
-   
-    }catch(err:any){
-     await session.abortTransaction();
-     await session.endSession();
-     throw new Error(err);
-   
+        let sort: any = {};
+        if (sortByPrice) {
+            sort.price = sortByPrice === 'asc' ? 1 : -1;
+        }
+
+        const result = await Product.find(filter).sort(sort);
+
+        await session.commitTransaction();
+        await session.endSession();
+
+        return result;
+
+    } catch (err: any) {
+        await session.abortTransaction();
+        await session.endSession();
+        throw new Error(err);
     }
-     
-    
-   };
+};
+
    
    
    
